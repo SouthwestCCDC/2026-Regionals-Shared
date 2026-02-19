@@ -1,6 +1,6 @@
-# 2025-Regionals-Shared
+# 2026-Regionals-Shared
 
-**Deadline to submit: TODO**
+**Deadline to submit: March 13th at 6pm CT**
 
 The Repository for SWCCDC teams to submit team-made docs and code they wish to bring into the game environment.
 You must submit a pull request against this repo by the deadline above for consideration.
