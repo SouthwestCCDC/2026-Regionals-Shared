@@ -23,7 +23,7 @@ You can create a pull request through the GitHub UI without interacting with git
 
 ### 1. Fork the Repo
 
-While logged in to GitHub (you do need to have an account), click the "Fork" button on [https://github.com/SouthwestCCDC/2024-Regionals-Shared/](https://github.com/SouthwestCCDC/2024-Regionals-Shared/).
+While logged in to GitHub (you do need to have an account), click the "Fork" button on this repo.
 
 <img width="1000" alt="1  create fork" src="https://user-images.githubusercontent.com/357174/154196009-863a5105-38bb-4f5f-8057-f9b45cabd195.png">
 
