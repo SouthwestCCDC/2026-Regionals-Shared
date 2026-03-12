@@ -1,0 +1,11 @@
+[project]
+name = "ccdc-scripts"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "ansible>=13.4.0",
+    "paramiko>=4.0.0",
+    "pywinrm>=0.5.0",
+]
