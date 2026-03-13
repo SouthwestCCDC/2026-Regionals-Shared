@@ -5,7 +5,7 @@ cred_spray.py -- CCDC credential spray tool (hydra-powered)
 Usage:
   python3 scripts/cred_spray.py --hosts ips.txt --creds creds.csv
   python3 scripts/cred_spray.py --hosts ips.txt --creds creds.csv --swap
-  python3 scripts/cred_spray.py --hosts ips.txt --creds creds.csv --recon-dir output/20260312_003503
+  python3 scripts/cred_spray.py --hosts ips.txt --creds creds.csv --recon-dir output/...
 
 Creds file: CSV with user,password per line (comma or colon separated)
 Hosts file: one IP per line
@@ -35,6 +35,8 @@ from pathlib import Path
 
 LOCK = threading.Lock()
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output"
+LOCAL_BIN = Path(__file__).resolve().parent.parent / ".local" / "bin"
+INSTALL_SCRIPT = Path(__file__).resolve().parent / "install_deps.sh"
 
 STD_PORTS = {"ssh": 22, "smb": 445, "winrm": 5985}
 PROBE_PORTS = ",".join(str(p) for p in STD_PORTS.values())
@@ -49,6 +51,29 @@ SERVICE_MAP = {
 
 # {protocol: {port: [hosts]}}
 SprayTargets = dict[str, dict[int, list[str]]]
+
+
+def _find_bin(name: str) -> str | None:
+    local = LOCAL_BIN / name
+    if local.is_file() and os.access(local, os.X_OK):
+        return str(local)
+    return shutil.which(name)
+
+
+def _run_install_deps() -> bool:
+    """Run install_deps.sh to install missing dependencies."""
+    if not INSTALL_SCRIPT.is_file():
+        return False
+    print(f"\n[*] Running {INSTALL_SCRIPT} to install missing tools...")
+    try:
+        subprocess.run(["bash", str(INSTALL_SCRIPT)], timeout=600)
+        return True
+    except subprocess.TimeoutExpired:
+        print("    [ERROR] install_deps.sh timed out")
+        return False
+    except Exception as e:
+        print(f"    [ERROR] install_deps.sh failed: {e}")
+        return False
 
 
 def log(msg: str):
@@ -168,7 +193,7 @@ def parse_recon_network_map(recon_dir: str) -> SprayTargets:
 
 def run_port_probe(hosts: list[str], rate: int = 10000) -> SprayTargets:
     """Quick masscan SYN probe on standard SSH/SMB/WinRM ports."""
-    masscan_bin = shutil.which("masscan")
+    masscan_bin = _find_bin("masscan")
     all_open: SprayTargets = {p: {v: list(hosts)} for p, v in STD_PORTS.items()}
 
     if not masscan_bin:
@@ -309,8 +334,9 @@ def run_hydra(
     timeout: int = 300,
 ) -> list[dict]:
     """Run hydra, streaming status lines live. Returns confirmed creds."""
+    hydra_bin = _find_bin("hydra") or "hydra"
     cmd = [
-        "hydra",
+        hydra_bin,
         "-C",
         str(creds_file),
         "-M",
@@ -512,10 +538,10 @@ def ssh_post_auth(ip: str, user: str, passwd: str, port: int = 22) -> dict:
 def smb_post_auth(ip: str, user: str, passwd: str) -> dict:
     """Check SMB admin status and OS info via netexec/crackmapexec."""
     tool = (
-        shutil.which("nxc")
-        or shutil.which("netexec")
-        or shutil.which("crackmapexec")
-        or shutil.which("cme")
+        _find_bin("nxc")
+        or _find_bin("netexec")
+        or _find_bin("crackmapexec")
+        or _find_bin("cme")
     )
     info: dict = {"os_info": "windows", "admin": False, "platform": "windows"}
     if not tool:
@@ -747,9 +773,16 @@ def main():
     )
     args = parser.parse_args()
 
-    if not shutil.which("hydra"):
-        print("[!] hydra not found -- install thc-hydra", file=sys.stderr)
-        sys.exit(1)
+    if not _find_bin("hydra"):
+        print("[!] hydra not found. Attempting auto-install...")
+        if _run_install_deps() and _find_bin("hydra"):
+            pass  # installed successfully
+        else:
+            print(
+                "[!] hydra still not found. Run: sudo bash scripts/install_deps.sh",
+                file=sys.stderr,
+            )
+            sys.exit(1)
     if OUTPUT_DIR.exists() and not os.access(OUTPUT_DIR, os.W_OK):
         print(
             f"[!] Cannot write to {OUTPUT_DIR}/ (owned by root)\n"
