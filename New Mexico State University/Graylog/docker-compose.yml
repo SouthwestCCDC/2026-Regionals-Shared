@@ -1,0 +1,94 @@
+# =============================================================
+# CCDC Graylog Stack - docker-compose.yml
+# Deploy on a Linux infrastructure machine (Ubuntu/Debian)
+# Graylog 6.x + OpenSearch + MongoDB
+#
+# USAGE:
+#   cp .env.example .env && nano .env   # set your passwords
+#   sysctl -w vm.max_map_count=262144   # required for OpenSearch
+#   echo "vm.max_map_count=262144" >> /etc/sysctl.conf
+#   docker compose up -d
+# =============================================================
+
+services:
+
+  mongodb:
+    image: "mongo:6.0"
+    container_name: graylog_mongo
+    volumes:
+      - "mongodb_data:/data/db"
+    restart: "on-failure"
+    networks:
+      - graylog
+
+  opensearch:
+    image: "opensearchproject/opensearch:2.11.0"
+    container_name: graylog_opensearch
+    environment:
+      - "OPENSEARCH_JAVA_OPTS=-Xms1g -Xmx1g"
+      - "bootstrap.memory_lock=true"
+      - "discovery.type=single-node"
+      - "action.auto_create_index=false"
+      - "plugins.security.ssl.http.enabled=false"
+      - "plugins.security.disabled=true"
+    ulimits:
+      memlock:
+        hard: -1
+        soft: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - "opensearch_data:/usr/share/opensearch/data"
+    restart: "on-failure"
+    networks:
+      - graylog
+
+  graylog:
+    image: "graylog/graylog:6.0"
+    container_name: graylog_server
+    hostname: "graylog"
+    depends_on:
+      - mongodb
+      - opensearch
+    entrypoint: "/usr/bin/tini -- /docker-entrypoint.sh"
+    environment:
+      # --- REQUIRED: set these in .env ---
+      GRAYLOG_PASSWORD_SECRET: "${GRAYLOG_PASSWORD_SECRET}"
+      GRAYLOG_ROOT_PASSWORD_SHA2: "${GRAYLOG_ROOT_PASSWORD_SHA2}"
+      # --- Connection ---
+      GRAYLOG_MONGODB_URI: "mongodb://mongodb:27017/graylog"
+      GRAYLOG_ELASTICSEARCH_HOSTS: "http://opensearch:9200"
+      # --- Change to this machine's actual IP or hostname ---
+      GRAYLOG_HTTP_EXTERNAL_URI: "http://${GRAYLOG_HOST:-127.0.0.1}:9000/"
+      GRAYLOG_HTTP_BIND_ADDRESS: "0.0.0.0:9000"
+      # --- Timezone ---
+      GRAYLOG_ROOT_TIMEZONE: "America/Chicago"
+    ports:
+      # Web UI + REST API
+      - "9000:9000/tcp"
+      # Syslog (Linux rsyslog, network gear)
+      - "5140:5140/udp"
+      - "5140:5140/tcp"
+      # GELF (structured logs, Docker, apps)
+      - "12201:12201/udp"
+      - "12201:12201/tcp"
+      # Beats / Winlogbeat / Filebeat
+      - "5044:5044/tcp"
+      # Raw plaintext (optional, handy for netcat tests)
+      - "5555:5555/udp"
+      - "5555:5555/tcp"
+    volumes:
+      - "graylog_data:/usr/share/graylog/data"
+    restart: "on-failure"
+    networks:
+      - graylog
+
+networks:
+  graylog:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+  opensearch_data:
+  graylog_data:
