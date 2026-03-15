@@ -1,0 +1,601 @@
+{
+ "v": "1",
+ "id": "ccdc-2025",
+ "rev": 1,
+ "name": "CCDC Security Rules",
+ "summary": "Pipeline rules for Windows, Linux AD monitoring",
+ "description": "Windows logon, AD changes, Linux SSH/sudo, persistence detection",
+ "vendor": "CCDC",
+ "url": "https://github.com/SouthwestCCDC",
+ "parameters": [],
+ "entities": [
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-tag-windows",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Tag Windows Source"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Tag Winlogbeat messages"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Tag Windows\"\nwhen\nhas_field(\"winlog_event_id\")|has_field(\"event_id\")\nthen\nsf(\"log_src\",\"win\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-4625",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - Failed Logon 4625"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Failed logon indicator"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win 4625\"\nwhen\ntl($e)==4625\nthen\nsf(\"evt\",\"logon_fail\");\nsf(\"sev\",\"warn\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-4624",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - Success Logon 4624"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Success logon events"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win 4624\"\nwhen\ntl($e)==4624\nthen\nsf(\"evt\",\"logon_ok\");\nsf(\"sev\",\"info\");\nlet lt=ts($m.LogonType);\nif(lt==\"10\"|lt==\"3\"){\nsf(\"sev\",\"notice\");\n}\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-4740",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - Account Lockout 4740"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Account lockout event"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win 4740\"\nwhen\ntl($e)==4740\nthen\nsf(\"evt\",\"lockout\");\nsf(\"sev\",\"high\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-4720",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - New User 4720"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "User creation"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win 4720\"\nwhen\ntl($e)==4720\nthen\nsf(\"evt\",\"user_new\");\nsf(\"sev\",\"crit\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-group",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - Group Change 4728/4732/4733"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Group modification"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win Grp\"\nwhen\ntl($e)==4728|tl($e)==4732|tl($e)==4733\nthen\nsf(\"evt\",\"grp_chg\");\nsf(\"sev\",\"crit\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-svc",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - Service Install 4697/7045"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Service creation"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win Svc\"\nwhen\ntl($e)==4697|tl($e)==7045\nthen\nsf(\"evt\",\"svc_new\");\nsf(\"sev\",\"crit\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-task",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - Task Create 4698"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Scheduled task creation"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win Task\"\nwhen\ntl($e)==4698\nthen\nsf(\"evt\",\"task_new\");\nsf(\"sev\",\"high\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-proc",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - Process 4688"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Process creation flags mimikatz/LOLBins"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win Proc\"\nwhen\ntl($e)==4688\nthen\nsf(\"evt\",\"proc_new\");\nsf(\"sev\",\"info\");\nlet p=lc(ts($m.NewProcessName));\nlet c=lc(ts($m.CommandLine));\nif(has(p,\"mimikatz\")|has(c,\"sekurlsa\")){\nsf(\"sev\",\"crit\");\n}else if(has(c,\"iex\")|has(c,\"downloadstring\")){\nsf(\"sev\",\"high\");\n}\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-ps",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - PS Block 4104"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "PowerShell script block logging"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win PS\"\nwhen\ntl($e)==4104\nthen\nsf(\"evt\",\"ps_block\");\nsf(\"sev\",\"notice\");\nlet sb=lc(ts($msg));\nif(has(sb,\"mimikatz\")|has(sb,\"invoke-mimikatz\")){\nsf(\"sev\",\"crit\");\n}else if(has(sb,\"iex\")|has(sb,\"downloadstring\")){\nsf(\"sev\",\"high\");\n}\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-log",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - Log Clear 1102/104"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Event log cleared"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win Log\"\nwhen\ntl($e)==1102|tl($e)==104\nthen\nsf(\"evt\",\"log_clear\");\nsf(\"sev\",\"crit\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-fw",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - Firewall 4946/4947/4948"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Firewall rule change"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win FW\"\nwhen\ntl($e)==4946|tl($e)==4947|tl($e)==4948\nthen\nsf(\"evt\",\"fw_chg\");\nsf(\"sev\",\"high\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-krb",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - Kerberoast 4769"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "TGS RC4 kerberoasting"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win Krb\"\nwhen\ntl($e)==4769\nthen\nsf(\"evt\",\"krb_tgs\");\nsf(\"sev\",\"info\");\nlet et=ts($m.TicketEncryptionType);\nif(et==\"0x17\"|et==\"23\"){\nsf(\"sev\",\"high\");\n}\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-win-rdp",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Win - RDP 4778/4779"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "RDP session activity"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Win RDP\"\nwhen\ntl($e)==4778|tl($e)==4779\nthen\nsf(\"evt\",\"rdp_sess\");\nsf(\"sev\",\"notice\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-linux-ssh",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Linux - SSH Fail"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Failed SSH login"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"SSH Fail\"\nwhen\nhas(ts($msg),\"Failed password\")|has(ts($msg),\"Invalid user\")|has(ts($msg),\"authentication failure\")\nthen\nsf(\"evt\",\"ssh_fail\");\nsf(\"sev\",\"warn\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-linux-ssh-ok",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Linux - SSH Success"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Successful SSH login"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"SSH OK\"\nwhen\nhas(ts($msg),\"Accepted password\")|has(ts($msg),\"Accepted publickey\")\nthen\nsf(\"evt\",\"ssh_ok\");\nsf(\"sev\",\"notice\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-linux-sudo",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Linux - Sudo"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Sudo execution"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Sudo\"\nwhen\nhas(ts($a),\"sudo\")|has(ts($msg),\"sudo:\")\nthen\nsf(\"evt\",\"sudo\");\nsf(\"sev\",\"notice\");\nif(has(ts($msg),\"NOT in sudoers\")|has(ts($msg),\"authentication failure\")){\nsf(\"sev\",\"high\");\n}\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-linux-user",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Linux - User Create"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "New user created"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"User New\"\nwhen\nhas(ts($a),\"useradd\")|has(ts($msg),\"new user:\")\nthen\nsf(\"evt\",\"user_new\");\nsf(\"sev\",\"crit\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-linux-pass",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Linux - Pass Change"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Password changed"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Pass\"\nwhen\nhas(ts($a),\"passwd\")|has(ts($msg),\"password changed\")\nthen\nsf(\"evt\",\"pass_chg\");\nsf(\"sev\",\"high\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-linux-cron",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Linux - Cron"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Cron modification"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Cron\"\nwhen\nhas(ts($msg),\"REPLACE\")|has(ts($msg),\"new crontab\")\nthen\nsf(\"evt\",\"cron_mod\");\nsf(\"sev\",\"high\");\nend"
+    }
+   }
+  },
+  {
+   "v": "1",
+   "type": {
+    "name": "pipeline_rule",
+    "version": "1"
+   },
+   "id": "rule-linux-shell",
+   "constraints": [
+    {
+     "type": "server-version",
+     "version": ">=3.0.0"
+    }
+   ],
+   "data": {
+    "title": {
+     "@type": "string",
+     "@value": "Linux - Rev Shell"
+    },
+    "description": {
+     "@type": "string",
+     "@value": "Reverse shell patterns"
+    },
+    "source": {
+     "@type": "string",
+     "@value": "rule \"Shell\"\nwhen\nhas(ts($msg),\"/bin/bash -i\")|has(ts($msg),\"nc -e\")|has(ts($msg),\"| bash\")\nthen\nsf(\"evt\",\"rev_shell\");\nsf(\"sev\",\"crit\");\nend"
+    }
+   }
+  }
+ ]
+}

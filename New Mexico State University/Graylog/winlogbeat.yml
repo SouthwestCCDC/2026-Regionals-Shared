@@ -1,0 +1,75 @@
+# =============================================================
+# CCDC - winlogbeat.yml
+# Install on Windows machines to forward Event Logs to Graylog
+#
+# SETUP:
+#   1. Download Winlogbeat from elastic.co (6.x or 7.x)
+#   2. Copy this file to C:\Program Files\Winlogbeat\winlogbeat.yml
+#      (replace GRAYLOG_IP below with actual IP)
+#   3. Open PowerShell as Admin and run:
+#        cd "C:\Program Files\Winlogbeat"
+#        .\install-service-winlogbeat.ps1
+#        Start-Service winlogbeat
+#
+# Or use the deploy-winlogbeat.ps1 script for one-click install.
+# =============================================================
+
+winlogbeat.event_logs:
+  # Core security events (logon, privilege use, process creation)
+  - name: Security
+    ignore_older: 1h
+    event_id: 4624, 4625, 4634, 4647, 4648, 4672, 4688, 4697, 4698,
+              4699, 4700, 4701, 4702, 4720, 4722, 4724, 4728, 4732,
+              4738, 4756, 4768, 4769, 4771, 4776, 4778, 4779
+
+  # System events
+  - name: System
+    ignore_older: 1h
+
+  # Application events
+  - name: Application
+    ignore_older: 1h
+
+  # PowerShell logging (critical for detecting attacks)
+  - name: Microsoft-Windows-PowerShell/Operational
+    ignore_older: 1h
+
+  # Process creation via Sysmon (if Sysmon is installed - highly recommended)
+  - name: Microsoft-Windows-Sysmon/Operational
+    ignore_older: 1h
+
+  # Windows Firewall
+  - name: Microsoft-Windows-Windows Firewall With Advanced Security/Firewall
+    ignore_older: 1h
+
+  # RDP
+  - name: Microsoft-Windows-TerminalServices-LocalSessionManager/Operational
+    ignore_older: 1h
+
+  # Task Scheduler
+  - name: Microsoft-Windows-TaskScheduler/Operational
+    ignore_older: 1h
+
+output.logstash:
+  # Change GRAYLOG_IP to your Graylog server IP
+  hosts: ["GRAYLOG_IP:5044"]
+  # Uncomment below if you set up TLS on the Beats input:
+  # ssl.enabled: true
+  # ssl.certificate_authorities: ["C:/Program Files/Winlogbeat/ca.crt"]
+
+# Optional: also log locally for debugging
+# logging.to_files: true
+# logging.files:
+#   path: C:\ProgramData\winlogbeat\Logs
+
+# Tag all events with source info
+fields:
+  ccdc_source: winlogbeat
+  os: windows
+fields_under_root: true
+
+# Queue settings for reliability
+queue.mem:
+  events: 4096
+  flush.min_events: 512
+  flush.timeout: 5s
