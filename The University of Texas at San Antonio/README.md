@@ -1,2 +1,2 @@
-# The University of Texas at San Antonio
-
+# UTSA CCDC Scripts and Enumeration Repository
+CCDC commands and tools used.
